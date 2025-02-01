@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package monitoring;
+
+option go_package = "service3/proto";
+
+service MonitoringService {
+  rpc GetServiceMetrics (GetMetricsRequest) returns (ServiceMetricsResponse) {}
+  rpc GetDatabaseMetrics (GetMetricsRequest) returns (DatabaseMetricsResponse) {}
+  rpc GetKafkaMetrics (GetMetricsRequest) returns (KafkaMetricsResponse) {}
+  rpc CreateUser (CreateUserRequest) returns (CreateUserResponse) {}
+  rpc GetUser (GetUserRequest) returns (GetUserResponse) {}
+}
+
+message GetMetricsRequest {
+  string service_name = 1;
+}
+
+message ServiceMetricsResponse {
+  uint64 total_requests = 1;
+  uint64 successful_requests = 2;
+  uint64 failed_requests = 3;
+  double average_latency_ms = 4;
+}
+
+message DatabaseMetricsResponse {
+  int32 active_connections = 1;
+  double database_size_mb = 2;
+}
+
+message KafkaMetricsResponse {
+  int64 messages_received = 1;
+  int64 bytes_received = 2;
+  int64 lag = 3;
+}
+
+message CreateUserRequest {
+  string name = 1;
+  string email = 2;
+}
+
+message CreateUserResponse {
+  int64 user_id = 1;
+  string status = 2;
+  string error = 3;
+}
+
+message GetUserRequest {
+  int64 user_id = 1;
+}
+
+message GetUserResponse {
+  int64 user_id = 1;
+  string name = 2;
+  string email = 3;
+  string error = 4;
+}

@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package order;
+
+option go_package = "service2/proto";
+
+// The OrderService definition.
+service OrderService {
+  // Create a new order.
+  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
+}
+
+// The request message containing order details.
+message CreateOrderRequest {
+  int32 user_id = 1;
+  string product = 2;
+}
+
+// The response message containing the new order id.
+message CreateOrderResponse {
+  int32 id = 1;
+}

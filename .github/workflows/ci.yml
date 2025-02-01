@@ -1,0 +1,59 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.23.5'
+
+    - name: Build Service 1
+      run: |
+        cd service1
+        go build -v ./...
+
+    - name: Build Service 2
+      run: |
+        cd service2
+        go build -v ./...
+
+    - name: Build Service 3
+      run: |
+        cd service3
+        go build -v ./...
+
+    - name: Test Service 1
+      run: |
+        cd service1
+        go test -v ./...
+
+    - name: Test Service 2
+      run: |
+        cd service2
+        go test -v ./...
+
+    - name: Test Service 3
+      run: |
+        cd service3
+        go test -v ./...
+
+    - name: Docker Compose Build
+      run: docker-compose build
+
+    - name: Docker Compose Test
+      run: |
+        docker-compose up -d
+        sleep 30
+        docker-compose ps
+        docker-compose down
