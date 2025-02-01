@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,42 +18,64 @@ jobs:
       with:
         go-version: '1.23.5'
 
-    - name: Build Service 1
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Install dependencies
       run: |
-        cd service1
-        go build -v ./...
+        go mod download
+        cd service1 && go mod download
+        cd ../service2 && go mod download
+        cd ../service3 && go mod download
 
-    - name: Build Service 2
+    - name: Build Services
+      run: make build
+
+    - name: Run Unit Tests
+      run: make test
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Cache Docker layers
+      uses: actions/cache@v3
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
+
+    - name: Build Docker images
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: false
+        load: true
+        cache-from: type=local,src=/tmp/.buildx-cache
+        cache-to: type=local,dest=/tmp/.buildx-cache-new
+
+    - name: Move Docker cache
       run: |
-        cd service2
-        go build -v ./...
+        rm -rf /tmp/.buildx-cache
+        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
-    - name: Build Service 3
-      run: |
-        cd service3
-        go build -v ./...
-
-    - name: Test Service 1
-      run: |
-        cd service1
-        go test -v ./...
-
-    - name: Test Service 2
-      run: |
-        cd service2
-        go test -v ./...
-
-    - name: Test Service 3
-      run: |
-        cd service3
-        go test -v ./...
-
-    - name: Docker Compose Build
-      run: docker-compose build
-
-    - name: Docker Compose Test
+    - name: Integration Tests
       run: |
         docker-compose up -d
-        sleep 30
-        docker-compose ps
+        sleep 45  # Allow services to fully initialize
+        cd service3 && go test -v -run TestHighLoad
+        docker-compose logs --no-color > ../logs/integration-test.log
         docker-compose down
+
+    - name: Upload test logs
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-logs
+        path: logs/
+        retention-days: 7
